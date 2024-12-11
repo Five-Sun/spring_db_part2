@@ -195,6 +195,370 @@ public DataSource dataSource() {
 스프링 부트는 개발자에게 정말 많은 편리함을 제공하는데, 임베디드 데이터베이스에 대한 설정도 기본으로 제공한다.
 **스프링 부트는 데이터베이스에 대한 별 다른 설정이 없으면 임베디드 데이터베이스를 사용한다.**
 
+## 데이터 접근 기술 - MyBatis
+
+### MyBatis 소개
+MyBatis는 앞서 설명한 JdbcTemplate보다 더 많은 기능을 제공하는 SQL Mapper 이다.
+
+기본적으로 JdbcTemplate이 제공하는 대부분의 기능을 제공한다.
+JdbcTemplate과 비교해서 MyBatis의 가장 매력적인 점은 SQL을 XML에 편리하게 작성할 수 있고 또 동적 쿼리를 매우 편리하게 작성할 수 있다는 점이다.
+
+#### 설정의 장단점
+JdbcTemplate은 스프링에 내장된 기능이고, 별도의 설정없이 사용할 수 있다는 장점이 있다.
+반면에 MyBatis는 약간의 설정이 필요하다.
+
+#### 정리
+프로젝트에서 동적 쿼리와 복잡한 쿼리가 많다면 MyBatis를 사용하고, 단순한 쿼리들이 많으면 JdbcTemplate을 선택해서 사용하면 된다. 
+물론 둘을 함께 사용해도 된다. 
+하지만 MyBatis를 선택했다면 그것으로 충분할 것이다.
+
+### MyBatis 설정
+`mybatis-spring-boot-starter` 라이브러리를 사용하면 MyBatis를 스프링과 통합하고, 설정도 아주 간단히 할 수 있다.
+
+```
+//MyBatis 추가
+implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.2.0'
+```
+스프링 부트가 버전을 관리해주는 공식 라이브러리가 아니기 때문에 버전 정보를 명시해야 한다.
+
+#### 설정
+`application.properties` 에 설정을 추가할 수 있다.
+* `mybatis.type-aliases-package`
+  * 마이바티스에서 타입 정보를 사용할 때는 패키지 이름을 적어주어야 하는데, 여기에 명시하면 패키지 이름을 생략할 수 있다.
+  * 지정한 패키지와 그 하위 패키지가 자동으로 인식된다.
+  * 여러 위치를 지정하려면 , , ; 로 구분하면 된다.
+* `mybatis.configuration.map-underscore-to-camel-case`
+  * `JdbcTemplate의` BeanPropertyRowMapper 에서 처럼 언더바를 카멜로 자동 변경해주는 기능을 활성화 한다. 바로 다음에 설명하는 관례의 불일치 내용을 참고하자.
+* `logging.level.hello.itemservice.repository.mybatis=trace`
+  * MyBatis에서 실행되는 쿼리 로그를 확인할 수 있다.
+
+### MyBatis 적용 - 기본
+
+#### ItemMapper
+```java
+@Mapper
+public interface ItemMapper {
+    void save(Item item);
+
+    void update(@Param("id") Long id, @Param("updateParam") ItemUpdateDto
+            updateParam);
+
+    Optional<Item> findById(Long id);
+
+    List<Item> findAll(ItemSearchCond itemSearch);
+}
+```
+* 마이바티스 매핑 XML을 호출해주는 매퍼 인터페이스이다.
+* 이 인터페이스에는 `@Mapper` 애노테이션을 붙여주어야 한다. 그래야 MyBatis에서 인식할 수 있다.
+*  인터페이스의 메서드를 호출하면 다음에 보이는 `xml`의 해당 SQL을 실행하고 결과를 돌려준다.
+
+### ItemMapper.xml
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="hello.itemservice.repository.mybatis.ItemMapper">
+ <insert id="save" useGeneratedKeys="true" keyProperty="id">
+    insert into item (item_name, price, quantity)
+    values (#{itemName}, #{price}, #{quantity})
+ </insert>
+ <update id="update">
+   update item
+    set item_name=#{updateParam.itemName},
+    price=#{updateParam.price},
+    quantity=#{updateParam.quantity}
+   where id = #{id}
+ </update>
+ <select id="findById" resultType="Item">
+   select id, item_name, price, quantity
+   from item
+   where id = #{id}
+ </select> 
+  <select id="findAll" resultType="Item">
+   select id, item_name, price, quantity
+   from item
+   <where>
+     <if test="itemName != null and itemName != ''">
+       and item_name like concat('%',#{itemName},'%')
+     </if>
+     <if test="maxPrice != null">
+        and price &lt;= #{maxPrice}
+     </if>
+   </where>
+ </select>
+</mapper>
+```
+* `namespace`: 앞서 만든 매퍼 인터페이스를 지정하면 된다.
+* 주의! 경로와 파일 이름에 주의하자.
+* 자바 코드가 아니기 때문에 `src/main/resources` 하위에 만들되, 패키지 위치는 맞추어 주어야 한다.
+* 파라미터가 1개만 있으면 `@Param`을 지정하지 않아도 되지만, 2개 이상이면 `@Param`으로 이름을 지정해서 파라미터를 구분해야 한다.
+* `resultType`은 반환 타입을 명시하면 된다.
+  * `application.properties`에 `mybatis.type-aliasespackage= 도메인 패키지` 속성을 지정한 덕분에 모든 패키지 명을 다 적지는 않아도 된다. 그렇지 않으면 모든 패키지 명을 다 적어야 한다.
+* mybatis.configuration.map-underscore-to-camel-case=true 속성을 지정한 덕분에 언더스코어를 카멜 표기법으로 자동으로 처리해준다.
+
+#### XML 특수 문자
+XML에서는 데이터 영역에 `<`, `>`같은 특수 문자를 사용할 수 없다. 
+이유는 간단한데, XML에서 TAG가 시작하거나 종료할 때 `<`, `>` 와 같은 특수문자를 사용하기 때문이다.
+* < : &lt;
+* \> : &gt;
+* & : &amp;
+
+#### XML CDATA 사용
+```xml
+<select id="findAll" resultType="Item"> 
+  select id, item_name, price, quantity
+  from item
+  <where>
+    <if test="itemName != null and itemName != ''">
+        and item_name like concat('%',#{itemName},'%')
+    </if>
+    <if test="maxPrice != null">
+      <![CDATA[
+      and price <= #{maxPrice}
+      ]]>
+    </if>
+  </where>
+</select>
+```
+이 구문 안에서는 특수문자를 사용할 수 있다. 대신 이 구문 안에서는 XML TAG가 단순 문자로 인식되기 때문에 <if> , <where> 등이 적용되지 않는다.
+
+### MyBatis 적용 - 분석
+`ItemMapper` 매퍼 인터페이스의 구현체가 없는데 어떻게 동작하는 걸까?
+![img_1.png](img_1.png)
+
+#### 매퍼 구현체
+- 마이바티스 스프링 연동 모듈이 만들어주는 구현체 덕분에 인터페이스 만으로 편리하게 XML의 데이터를 찾아서 호출할 수 있다.
+- 매퍼 구현체는 예외 변환까지 처리해준다. MyBatis에서 발생한 예외를 스프링 예외 추상화인 `DataAccessException`에 맞게 변환해서 반환해준다.
+
+### MyBatis 기능 정리 - 동적 쿼리
+
+#### 동적 SQL
+마이바티스가 제공하는 최고의 기능이자 마이바티스를 사용하는 이유는 바로 동적 SQL 기능 때문이다.
+동적 쿼리를 위해 제공되는 기능은 다음과 같다.
+* if
+* choose (when, otherwise)
+* trim (where, set)
+* foreach
+
+### MyBatis 기능 정리 - 기타 기능
+
+#### 애노테이션으로 SQL 작성
+```java
+@Select("select id, item_name, price, quantity from item where id=#{id}")
+Optional<Item> findById(Long id);
+```
+- `@Insert`, `@Update`, `@Delete`, `@Select` 기능이 제공된다.
+- 동적 SQL이 해결되지 않으므로 간단한 경우에만 사용한다.
+
+#### 문자열 대체(String Substitution)
+`#{}` 문법은 ?를 넣고 파라미터를 바인딩하는 `PreparedStatement` 를 사용한다.
+때로는 파라미터 바인딩이 아니라 문자 그대로를 처리하고 싶은 경우도 있다. 이때는 `${}` 를 사용하면 된다.
+
+`${}` 를 사용하면 SQL 인젝션 공격을 당할 수 있다. 따라서 가급적 사용하면 안된다. 사용하더라도 매우 주의깊게 사용해야 한다.
+
+#### 재사용 가능한 SQL 조각
+`<sql>` 을 사용하면 SQL 코드를 재사용 할 수 있다.
+```xml
+<sql id="userColumns"> ${alias}.id,${alias}.username,${alias}.password </sql>
+
+<select id="selectUsers" resultType="map">
+  select
+      <include refid="userColumns"><property name="alias" value="t1"/></include>,
+      <include refid="userColumns"><property name="alias" value="t2"/></include>
+  from some_table t1
+    cross join some_table t2
+</select>
+```
+
+#### ResultMaps
+```xml
+<resultMap id="userResultMap" type="User">
+ <id property="id" column="user_id" />
+ <result property="username" column="user_name"/>
+ <result property="password" column="hashed_password"/>
+</resultMap>
+<select id="selectUsers" resultMap="userResultMap">
+ select user_id, user_name, hashed_password
+ from some_table
+ where id = #{id}
+</select>
+```
+MyBatis도 매우 복잡한 결과에 객체 연관관계를 고려해서 데이터를 조회하는 것이 가능하다.
+이때는 <association> , <collection> 등을 사용한다.
+이 부분은 성능과 실효성에서 측면에서 많은 고민이 필요하다.
+
+## 5. 데이터 접근 기술 - JPA
+
+### JPA 시작
+스프링과 JPA는 자바 엔터프라이즈(기업) 시장의 주력 기술이다.
+
+스프링이 DI 컨테이너를 포함한 애플리케이션 전반의 다양한 기능을 제공한다면, JPA는 ORM 데이터 접근 기술을 제공한다.
+
+실무에서 JPA를 더욱 편리하게 사용하기 위해 스프링 데이터 JPA와 Querydsl이라는 기술을 함께 사용한다.
+중요한 것은 JPA이다. 스프링 데이터 JPA, Querydsl은 JPA를 편리하게 사용하도록 도와주는 도구라 생각하면 된다.
+
+### ORM 개념
+
+#### SQL 중심적인 개발의 문제점
+- 무한 반복, 지루한 코드
+- SQL에 의존적인 개발을 피하기 어렵다.
+- 패러다임의 불일치, 객체 vs 관계형 데이터베이스
+  - 객체답게 모델링 할수록 매핑 작업만 늘어난다.
+  
+#### JPA 소개
+JPA는 Java Persistence API의 약자로 자바 진영의 ORM 기술 표준이다.
+
+JPA는 EJB -> 하이버네이트 -> JPA 순으로 발전했다.
+
+![img_2.png](img_2.png)
+
+##### ORM 
+Object-relational mapping의 약자로 ORM 프레임 워크가 중간에서 객체와 관계형 데이터베이스의 매핑을 도와준다.
+
+ORM은 객체와 RDB 두기둥위에있는기술이다
+##### JPA를 왜 사용해야 하는가?
+- SQL 중심적인 개발에서 객체 중심으로 개발
+- 생산성
+- 유지보수
+- 패러다임의 불일치 해결
+  - 상속
+  - 연관관계
+  - 객체 그래프 탐색
+- 성능
+  - 1차 캐시와 동일성 보장
+  - 트랜잭션을 지원하는 쓰기 지연
+  - 지연 로딩
+- 데이터 접근 추상화와 벤더 독립성
+- 표준
+
+### JPA 설정
+`spring-boot-starter-data-jpa`라이브러리를 사용하면 JPA와 스프링 데이터 JPA를 스프링 부트와 통합하고, 설정도 아주 간단히 할 수 있다.
+```
+//JPA, 스프링 데이터 JPA 추가
+implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+```
+
+### JPA 적용
+JPA가 제공하는 애노테이션을 사용해서 객체와 테이블을 매핑할 수 있다.
+```java
+@Data
+@Entity
+public class Item {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(name = "item_name", length = 10)
+    private String itemName;
+    private Integer price;
+    private Integer quantity;
+
+    public Item() {
+    }
+
+    public Item(String itemName, Integer price, Integer quantity) {
+        this.itemName = itemName;
+        this.price = price;
+        this.quantity = quantity;
+    }
+}
+```
+- `@Enity`: JPA가 사용하는 객체라는 뜻이다. 이 애노테이션이 있어야 JPA가 인식할 수 있다.
+- `@Id`: 테이블의 PK와 해당 필드를 매핑한다.
+- `@GeneratedValue(strategy = GenerationType.IDENTITY)`: PK 생성 값을 데이터베이스에서 생성하는 `IDENTITY` 방식을 사용한다.
+- `@Column`: 객체의 필드를 테이블의 컬럼과 매핑한다.
+
+JPA는 `public` 또는 `protected`의 기본 생성자가 필수이다. 기본 생성자를 꼭 넣어주자.
+```java
+public Item() {}
+```
+
+JPA를 실제 사용하는 예시 코드는 다음과 같다.
+```java
+@Slf4j
+@Repository
+@Transactional
+public class JpaItemRepositoryV1 implements ItemRepository {
+    private final EntityManager em;
+
+    public JpaItemRepositoryV1(EntityManager em) {
+        this.em = em;
+    }
+
+    @Override
+    public Item save(Item item) {
+        em.persist(item);
+        return item;
+    }
+
+    @Override
+    public void update(Long itemId, ItemUpdateDto updateParam) {
+        Item findItem = em.find(Item.class, itemId);
+        findItem.setItemName(updateParam.getItemName());
+        findItem.setPrice(updateParam.getPrice());
+        findItem.setQuantity(updateParam.getQuantity());
+    }
+
+    @Override
+    public Optional<Item> findById(Long id) {
+        Item item = em.find(Item.class, id);
+        return Optional.ofNullable(item);
+    }
+
+    @Override
+    public List<Item> findAll(ItemSearchCond cond) {
+        String jpql = "select i from Item i";
+        Integer maxPrice = cond.getMaxPrice();
+        String itemName = cond.getItemName();
+        if (StringUtils.hasText(itemName) || maxPrice != null) {
+            jpql += " where";
+        }
+        boolean andFlag = false;
+        if (StringUtils.hasText(itemName)) {
+            jpql += " i.itemName like concat('%',:itemName,'%')";
+            andFlag = true;
+        }
+        if (maxPrice != null) {
+            if (andFlag) {
+                jpql += " and";
+            }
+            jpql += " i.price <= :maxPrice";
+        }
+        log.info("jpql={}", jpql);
+        TypedQuery<Item> query = em.createQuery(jpql, Item.class);
+        if (StringUtils.hasText(itemName)) {
+            query.setParameter("itemName", itemName);
+        }
+        if (maxPrice != null) {
+            query.setParameter("maxPrice", maxPrice);
+        }
+        return query.getResultList();
+    }
+}
+```
+- `private final EntityManager em`: 생성자를 보면 스프링을 통해 엔티티 매니저라는 것을 주입 받는다.
+
+JPA를 설정하려면 `EntityManagerFactory`, JPA 트랜잭션 매니저( `JpaTransactionManager` ), 데이터 소스 등등 다양한 설정을 해야 한다. 
+스프링 부트는 이 과정을 모두 자동화 해준다.
+
+#### JPQL
+JPA는 JPQL(Java Persistence Query Langauge)이라는 객체지향 쿼리 언어를 제공한다.
+주로 여러 데이터를 복잡한 조건으로 조회할 때 사용한다.
+
+엔티티 객체를 대상으로 하기 때문에 `from` 다음에 `Item` 엔티티 객체 이름이 들어간다. 
+엔티티 객체와 속성의 대소문자는 구분해야 한다.
+
+### JPA 적용 - 예외 변환
+`EntityManage`는 순수한 JPA 기술이고, 스프링과는 관계가 없다.
+따라서 엔티티 매니저는 예외가 발생하면 JPA 관련 예외를 발생시킨다.
+
+JPA예외를 스프링 예외 추상화로 어떻게 변환할 수 있을까? 비밀은 바로 `@Repository`에 있다.
+
+#### @Repository의 기능
+* `@Repository` 가 붙은 클래스는 컴포넌트 스캔의 대상이 된다.
+* `@Repository` 가 붙은 클래스는 예외 변환 AOP의 적용 대상이 된다.
+![img_3.png](img_3.png)
+
+## 6. 데이터 접근 기술 - 스프링 데이터 JPA
 
 
 
