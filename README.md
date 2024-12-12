@@ -560,8 +560,368 @@ JPA예외를 스프링 예외 추상화로 어떻게 변환할 수 있을까? �
 
 ## 6. 데이터 접근 기술 - 스프링 데이터 JPA
 
+### 스프링 데이터 JPA 소개
 
+#### 등장 이유
+EJB 지옥에서 스프링의 등장으로 EJB 컨테이너를 대체하면서 단숨함이 승리하게 된다.
+하이버네이트가 EJB 엔티티빈 기술을 대체하고, 이후 JPA라는 새로운 표준을 정의한다.
 
+관계형 데이터베이스 세상에 다양한 DB와 기술이 등장하게 되고 이것을 JPA와 결합하여 편리하게 사용하기 위해 등장했다.
 
+단순한 통합 그 이상의 기능을 제공한다.
+- CRUD + 쿼리
+- 동일한 인터페이스
+- 페이징 처리
+- 메서드 이름으로 쿼리 생성
+- 스프링 MVC에서 id 값만 넘겨도 도메인 클래스로 바인딩
+
+Spring Data만 알면 사용할 수 있는가?
+
+자바를 모르고 스프링을 사용하는 것과 같이 해당 기술을 아는 사람이 편하게 사용하려고 쓰는 것이다.
+
+### 스프링 데이터 JPA 주요 기능
+스프링 데이터 JPA는 JPA를 편리하게 사용할 수 있도록 도와주는 라이브러리이다.
+- 공통 인터페이스 기능
+- 쿼리 메서드 기능
+
+![img_4.png](img_4.png)
+
+#### JpaRepository 사용법
+```java
+public interface ItemRepository extends JpaRepository<Item, Long> {
+}
+```
+* `JpaRepository` 인터페이스를 인터페이스 상속 받고, 제네릭에 관리할 <엔티티, 엔티티ID> 를 주면 된다.
+* 그러면 `JpaRepository` 가 제공하는 기본 CRUD 기능을 모두 사용할 수 있다.
+
+#### 스프링 데이터 JPA가 구현 클래스를 대신 생성
+![img_5.png](img_5.png)
+
+#### 쿼리 메서드 기능
+스프링 데이터 JPA는 인터페이스에 메서드만 적어두면, 메서드 이름을 분석해서 쿼리를 자동으로 만들고 실행해주는 기능을 제공한다.
+
+* 조회: find…By , read…By , query…By , get…By
+  * 예:) findHelloBy 처럼 ...에 식별하기 위한 내용(설명)이 들어가도 된다.
+* COUNT: count…By 반환타입 long
+* EXISTS: exists…By 반환타입 boolean
+* 삭제: delete…By , remove…By 반환타입 long
+* DISTINCT: findDistinct , findMemberDistinctBy
+* LIMIT: findFirst3 , findFirst , findTop , findTop3
+
+#### JPQL 직접 사용하기
+```java
+public interface SpringDataJpaItemRepository extends JpaRepository<Item, Long> {
+ //쿼리 메서드 기능
+ List<Item> findByItemNameLike(String itemName);
+ //쿼리 직접 실행
+ @Query("select i from Item i where i.itemName like :itemName and i.price <= :price")
+ List<Item> findItems(@Param("itemName") String itemName, @Param("price") Integer price);
+```
+
+### 스프링 데이터 JPA 적용
+스프링 데이터 JPA는 `spring-boot-starter-data-jpa` 라이브러리를 넣어주면 된다.
+```
+//JPA, 스프링 데이터 JPA 추가
+implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+```
+
+#### 예외 변환
+스프링 데이터 JPA도 스프링 예외 추상화를 지원한다. 스프링 데이터 JPA가 만들어주는 프록시에서 이미 예외 변환을 처리하기 때문에, `@Repository`와 관계없이 예외가 변환된다.
+
+### 정리
+스프링 데이터 JPA는 이 외에도 정말 수 많은 편리한 기능을 제공한다.
+심지어 우리가 어렵게 사용하는 페이징을 위한 기능들도 제공한다. 
+스프링 데이터 JPA는 단순히 편리함을 넘어서 많은 개발자들이 똑같은 코드로 중복 개발하는 부분을 개선해준다.
+스프링 데이터 JPA는 실무에서 기본으로 선택하는 기술이다.
+
+## 7. 데이터 접근 기술 - Querydsl
+
+### Querydsl 소개
+
+#### 기존 방식의 문제점
+* Query는 문자, Type-check 불가능
+* 실행하기 전까지 작동여부 확인 불가
+
+#### JPA에서 QUERY 방법은 크게 3가지
+1. JPQL(HQL) 
+   - SQL QUERY와 비슷해서 금방 익숙해짐
+   - type-safe 아님
+   - 동적쿼리 생성이 어려움
+2. CriteriaAPI
+  - 동적 쿼리 생성이 쉬움
+  - type-safe 아님
+  - 너무 복잡함
+3. MetaModelCriteriaAPI(type-safe)
+
+#### QueryDSL 분석
+* Domain(도메인)
+* Specific(특화)
+* Language(언어)
+
+#### DSL
+* 도메인 + 특화 + 언어
+* 특정한 도메인에 초점을 맞춘 제한적인 표현력을 가진 프로그래밍 언어
+* 특징: 단순 간결, 유창
+
+#### QueryDSL
+* 쿼리를 Java로 type-safe하게 개발할 수 있게 지원하는 프레임워크
+* 주로 JPA 쿼리(JPQL)에 사용한다.
+* 쿼리 + 도메인 + 특화 + 언어
+* 쿼리에 특화된 프로그래밍 언어
+* 단순, 간결, 유창
+* 다양한 저장소 쿼리 기능 통합
+
+#### Type-safe Query Type 생성
+![img_6.png](img_6.png)
+* APT(Annotation Processing Tool): `@Entity` 코드 생성기
+
+#### Querydsl-JPA
+- Querydsl은 JPA쿼리(JPQL)을 typesafe하게 작성하는데 많이 사용됨
+- 장점
+  - type-safe
+  - 단순함
+  - 쉬움
+- 단점
+  - Q코드 생성을 위한 APT를 설정해야 함
+
+#### 작동 방식
+![img_7.png](img_7.png)
+
+### QueryDSL 설정
+```
+//Querydsl 추가
+implementation 'com.querydsl:querydsl-jpa'
+annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jpa"
+annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+```
+- 설정 후 `Build` 과정을 통해 Q타입을 생성할 수 있다.
+- Q 타입 생성 확인은 `build -> generated -> sources -> annotationProcessor -> java/main` 하위에서 확인한다.
+
+### Querydsl 적용
+```java
+@Repository
+@Transactional
+public class JpaItemRepositoryV3 implements ItemRepository {
+    private final EntityManager em;
+    private final JPAQueryFactory query;
+
+    public JpaItemRepositoryV3(EntityManager em) {
+        this.em = em;
+        this.query = new JPAQueryFactory(em);
+    }
+
+    @Override
+    public Item save(Item item) {
+        em.persist(item);
+        return item;
+    }
+
+    @Override
+    public void update(Long itemId, ItemUpdateDto updateParam) {
+        Item findItem = findById(itemId).orElseThrow();
+        findItem.setItemName(updateParam.getItemName());
+        findItem.setPrice(updateParam.getPrice());
+        findItem.setQuantity(updateParam.getQuantity());
+    }
+
+    @Override
+    public Optional<Item> findById(Long id) {
+        Item item = em.find(Item.class, id);
+        return Optional.ofNullable(item);
+    }
+
+    @Override
+    public List<Item> findAll(ItemSearchCond cond) {
+        String itemName = cond.getItemName();
+        Integer maxPrice = cond.getMaxPrice();
+        List<Item> result = query
+                .select(item)
+                .from(item)
+                .where(likeItemName(itemName), maxPrice(maxPrice))
+                .fetch();
+        return result;
+    }
+
+    private BooleanExpression likeItemName(String itemName) {
+        if (StringUtils.hasText(itemName)) {
+            return item.itemName.like("%" + itemName + "%");
+        }
+        return null;
+    }
+
+    private BooleanExpression maxPrice(Integer maxPrice) {
+        if (maxPrice != null) {
+            return item.price.loe(maxPrice);
+        }
+        return null;
+    }
+}
+```
+* `Querydsl`을 사용하려면 `JPAQueryFactory`가 필요하다. `JPAQueryFactory`는 JPA 쿼리인 `JPQL`을 만들기 때문에 `EntityManager`가 필요하다.
+* 설정 방식은 `JdbcTemplate` 을 설정하는 것과 유사하다.
+* 참고로 `JPAQueryFactory` 를 스프링 빈으로 등록해서 사용해도 된다.
+
+### 정리
+QueryDSL 덕분에 동적 쿼리를 매우 깔끔하게 사용할 수 있다.
+```java
+List<Item> result = query
+ .select(item)
+ .from(item)
+ .where(likeItemName(itemName), maxPrice(maxPrice))
+ .fetch();
+```
+- 쿼리 문장에 오타가 있어도 컴파일 시점에 오류를 막을 수 있다.
+- 메서드 추출을 통해서 코드를 재사용할 수 있다.
+
+## 8. 데이터 접근 기술 - 활용 방안
+
+### 스프링 데이터 JPA 예제와 트레이드 오프
+![img_8.png](img_8.png)
+- 구조를 맞추기 위해서, 중간에 어댑터가 들어가면서 전체 구조가 너무 복잡해지고 사용하는 클래스도 많아지는 단점이 생길 수 있다.
+- DI, OCP 원칙을 지킬 수 있다는 좋은 점이 분명히 있지만 반대로 구조가 복잡해지면서 어댑터 코드와 실제 코드까지 함께 유지보수해야하는 어려움도 발생한다.
+
+#### 다른 선택
+DI, OCP 원칙을 포기하는 대신에, 복잡한 어댑터를 제거하고, 구조를 단순하게 가져가는 선택도 있다.
+![img_9.png](img_9.png)
+![img_10.png](img_10.png)
+
+#### 트레이드 오프
+- DI, OCP를 지키기 위해 어댑터를 도입하고, 더 많은 코드를 유지한다.
+- 어댑터를 제거하고 구조를 단순하게 가져가지만, DI, OCP를 포기한다.
+
+결국 여기서 발생하는 트레이드 오프는 구조의 안정성 vs 단순한 구조와 개발의 편리성 사이의 선택이다.
+정답은 없다. 어떤 상황에서는 구조의 안정성이 매우 중요하고, 어떤 상황에서는 단순한 것이 더 나은 선택일 수 있다.
+
+개발을 할 때는 항상 자원이 무한한 것이 아니다. **추상화도 비용이 든다.** 이 추상화 비용을 넘어설 만큼 효과가 있을 때 추상화를 도입하는 것이 실용적이다.
+
+## 9. 스프링 트랜잭션 이해
+
+### 스프링 트랜잭션 소개
+
+#### 스프링 트랜잭션 추상화
+각각의 데이터 접근 기술들은 트랜잭션을 처리하는 방식에 차이가 있다.
+JDBC 기술을 사용하다가 JPA 기술로 변경하게 되면 트랜잭션을 사용하는 코드도 모두 함께 변경해야 한다.
+
+스프링은 이런 문제를 해결하기 위해 트랜잭션 추상화를 제공한다.
+스프랭은 `PlatformTransactionManager` 라는 인터페이스를 통해 트랜잭션을 추상화한다.`라는 인터페이스를 통해 트랜잭션을 추상화한다.
+
+#### PlatformTransactionManager 인터페이스
+```java
+public interface PlatformTransactionManager extends TransactionManager {
+    TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
+            throws TransactionException;
+
+    void commit(TransactionStatus status) throws TransactionException;
+
+    void rollback(TransactionStatus status) throws TransactionException;
+}
+```
+트랜잭션은 트랜잭션 시작(획득), 커밋, 롤백으로 단순하게 추상화 할 수 있다.
+
+![img_11.png](img_11.png)
+
+스프링은 트랜잭션을 추상화해서 제공할 뿐만 아니라, 실무에서 주로 사용하는 데이터 접근 기술에 대한 트랜잭션 매니저의 구현체도 제공한다. 
+우리는 필요한 구현체를 스프링 빈으로 등록하고 주입 받아서 사용하기만 하면 된다.
+
+### 선언적 트랜잭션과 AOP
+`@Transactional`을 통한 선언적 트랜잭션 관리 방식을 사용하게 되면 기본적으로 프록시 방식의 AOP가 적용된다.
+
+![img_12.png](img_12.png)
+
+#### 스프링이 제공하는 트랜잭션 AOP
+스프링의 트랜잭션은 매우 중요한 기능이고, 전세계 누구나 다 사용하는 기능이다.
+스프링은 트랜잭션 AOP를 처리하기 위한 모든 기능을 제공한다. 
+스프링 부트를 사용하면 트랜잭션 AOP를 처리하기 위해 필요한 스프링 빈들도 자동으로 등록해준다.
+
+### 트랜잭션 AOP 주의사항 - 프록시 내부 호출
+AOP를 적용하면 스프링은 대상 객체 대신에 프록시를 스프링 빈으로 등록한다.
+따라서 스프링은 의존관계 주입시에 항상 실제 객체 대신에 프록시 객체를 등록한다.
+대상 객체를 직접 호출하는 문제는 일반적으로 발생하지 않지만 대상 객체 내부에서 메서드 호출이 발생하면 프록시를 거치지 않고 대상 객체를 직접 호출하는 문제가 발생한다.
+이렇게 되면 `@Transactional`이 있어도 트랜잭션이 적용되지 않는다.
+
+![img_13.png](img_13.png)
+
+#### 문제 원인
+자바 언어에서 메서드 앞에 별도의 참조가 없으면 `this`라는 뜻으로 자기 자신의 인스턴스를 가리킨다.
+결과적으로 자기 자신의 내부 메서드를 호출하는 `this.internal()` 이 되는데, 여기서 `this`는 자기 자신을 가리키므로, 실제 대상 객체(`target`)의 인스턴스를 뜻한다. 
+결과적으로 이러한 내부 호출은 프록시를 거치지 않는다. 
+따라서 트랜잭션을 적용할 수 없다. 
+
+#### 프록시 방식의 AOP 한계
+`@Transactional`를 사용하는 트랜잭션 AOP는 프록시를 사용한다. 
+프록시를 사용하면 메서드 내부 호출에 프록시를 적용할 수 없다.
+
+여러가지 다른 해결방안도 있지만, 실무에서는 별도의 클래스로 분리하는 방법을 주로 사용한다.
+
+#### public 메서드만 트랜잭션 적용
+스프링 트랜잭션 AOP 기능은 `public` 메서드에만 트랜잭션을 적용하도록 기본 설정이 되어 있다.
+
+### 트랜잭션 옵션 소개
+
+#### @Transactional - 코드
+```java
+public @interface Transactional {
+    String value() default "";
+
+    String transactionManager() default "";
+
+    Class<? extends Throwable>[] rollbackFor() default {};
+
+    Class<? extends Throwable>[] noRollbackFor() default {};
+
+    Propagation propagation() default Propagation.REQUIRED;
+
+    Isolation isolation() default Isolation.DEFAULT;
+
+    int timeout() default TransactionDefinition.TIMEOUT_DEFAULT;
+
+    boolean readOnly() default false;
+
+    String[] label() default {};
+}
+```
+
+#### value, transactionManager
+트랜잭션을 사용하려면 먼저 스프링 빈에 등록된 어떤 트랜잭션 매니저를 사용할지 알아야 한다.
+`@Transactional`에서도 트랜잭션 프록시가 사용할 트랜잭션 매니저를 지정해주어야 한다.
+사용할 트랜잭션 매니저를 지정할 때는 `value`, `transactionManager` 둘 중 하나에 트랜잭션 매니저의 스프링 빈의 이름을 적어주면 된다.
+
+#### rollbackFor
+예외 발생시 스프링 트랜잭션의 기본 정책은 다음과 같다.
+* 언체크 예외인 `RuntimeException`, `Error` 와 그 하위 예외가 발생하면 롤백한다.
+* 체크 예외인 `Exception` 과 그 하위 예외들은 커밋한다.
+
+옵션을 사용하면 기본 정책에 추가로 어떤 예외가 발생할 때 롤백할 지 지정할 수 있다.
+
+#### noRollbackFor
+기본 정책에 추가로 어떤 예외가 발생했을 때 롤백하면 안되는지 지정할 수 있다.
+
+#### propagation
+트랜잭션 전파에 대한 옵션이다.
+
+#### isolation
+트랜잭션 격리 수준을 지정할 수 있다.
+대부분 데이터베이스에서 설정한 기준을 따른다. 애플리케이션 개발자가 트랜잭션 격리 수준을 직접 지정하는 경우는 드물다.
+* `DEFAULT` : 데이터베이스에서 설정한 격리 수준을 따른다.
+* `READ_UNCOMMITTED` : 커밋되지 않은 읽기
+* `READ_COMMITTED` : 커밋된 읽기
+* `REPEATABLE_READ` : 반복 가능한 읽기
+* `SERIALIZABLE` : 직렬화 가능
+
+#### timeout
+트랜잭션 수행 시간에 대한 타임아웃을 초 단위로 지정한다.
+
+#### label
+트랜잭션 애노테이션에 있는 값을 직접 읽어서 어떤 동작을 하고 싶을 때 사용할 수 있다. 일반적으로 사용하지 않는다.
+
+#### readOnly
+트랜잭션은 기본으로 읽기 쓰기가 모두 가능한 트랜잭션이 생성된다.
+`readOnly` 옵션을 사용하면 읽기에서 다양한 성능 최적화가 발생할 수 있다.
+
+### 예외와 트랜잭션 커밋, 롤백 - 기본
+예외가 발생했는데, 내부에서 예외를 처리하지 못하고, 트랜잭션 범위(@Transactional가 적용된 AOP) 밖으로 예외를 던지면 어떻게 될까?
+
+![img_14.png](img_14.png)
 
 
