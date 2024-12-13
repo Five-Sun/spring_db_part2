@@ -155,7 +155,7 @@ class ItemRepositoryTest {}
 스프링이 제공하는 `@Transactional` 애노테이션은 로직이 성공적으로 수행되면 커밋하도록 동작한다.
 
 ##### @Transactional이 적용된 테스트 동작 방식
-![img.png](img.png)
+![img.png](img/img.png)
 
 ### 강제로 커밋하기 - @Commit
 `@Commit`을 클래스 또는 메서드에 붙이면 테스트 종료후 롤백 대신 커밋이 호출된다.
@@ -324,7 +324,7 @@ XML에서는 데이터 영역에 `<`, `>`같은 특수 문자를 사용할 수 �
 
 ### MyBatis 적용 - 분석
 `ItemMapper` 매퍼 인터페이스의 구현체가 없는데 어떻게 동작하는 걸까?
-![img_1.png](img_1.png)
+![img_1.png](img/img_1.png)
 
 #### 매퍼 구현체
 - 마이바티스 스프링 연동 모듈이 만들어주는 구현체 덕분에 인터페이스 만으로 편리하게 XML의 데이터를 찾아서 호출할 수 있다.
@@ -410,7 +410,7 @@ JPA는 Java Persistence API의 약자로 자바 진영의 ORM 기술 표준이�
 
 JPA는 EJB -> 하이버네이트 -> JPA 순으로 발전했다.
 
-![img_2.png](img_2.png)
+![img_2.png](img/img_2.png)
 
 ##### ORM 
 Object-relational mapping의 약자로 ORM 프레임 워크가 중간에서 객체와 관계형 데이터베이스의 매핑을 도와준다.
@@ -556,7 +556,7 @@ JPA예외를 스프링 예외 추상화로 어떻게 변환할 수 있을까? �
 #### @Repository의 기능
 * `@Repository` 가 붙은 클래스는 컴포넌트 스캔의 대상이 된다.
 * `@Repository` 가 붙은 클래스는 예외 변환 AOP의 적용 대상이 된다.
-![img_3.png](img_3.png)
+![img_3.png](img/img_3.png)
 
 ## 6. 데이터 접근 기술 - 스프링 데이터 JPA
 
@@ -584,7 +584,7 @@ Spring Data만 알면 사용할 수 있는가?
 - 공통 인터페이스 기능
 - 쿼리 메서드 기능
 
-![img_4.png](img_4.png)
+![img_4.png](img/img_4.png)
 
 #### JpaRepository 사용법
 ```java
@@ -595,7 +595,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 * 그러면 `JpaRepository` 가 제공하는 기본 CRUD 기능을 모두 사용할 수 있다.
 
 #### 스프링 데이터 JPA가 구현 클래스를 대신 생성
-![img_5.png](img_5.png)
+![img_5.png](img/img_5.png)
 
 #### 쿼리 메서드 기능
 스프링 데이터 JPA는 인터페이스에 메서드만 적어두면, 메서드 이름을 분석해서 쿼리를 자동으로 만들고 실행해주는 기능을 제공한다.
@@ -672,7 +672,7 @@ implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 * 다양한 저장소 쿼리 기능 통합
 
 #### Type-safe Query Type 생성
-![img_6.png](img_6.png)
+![img_6.png](img/img_6.png)
 * APT(Annotation Processing Tool): `@Entity` 코드 생성기
 
 #### Querydsl-JPA
@@ -685,7 +685,7 @@ implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
   - Q코드 생성을 위한 APT를 설정해야 함
 
 #### 작동 방식
-![img_7.png](img_7.png)
+![img_7.png](img/img_7.png)
 
 ### QueryDSL 설정
 ```
@@ -777,14 +777,14 @@ List<Item> result = query
 ## 8. 데이터 접근 기술 - 활용 방안
 
 ### 스프링 데이터 JPA 예제와 트레이드 오프
-![img_8.png](img_8.png)
+![img_8.png](img/img_8.png)
 - 구조를 맞추기 위해서, 중간에 어댑터가 들어가면서 전체 구조가 너무 복잡해지고 사용하는 클래스도 많아지는 단점이 생길 수 있다.
 - DI, OCP 원칙을 지킬 수 있다는 좋은 점이 분명히 있지만 반대로 구조가 복잡해지면서 어댑터 코드와 실제 코드까지 함께 유지보수해야하는 어려움도 발생한다.
 
 #### 다른 선택
 DI, OCP 원칙을 포기하는 대신에, 복잡한 어댑터를 제거하고, 구조를 단순하게 가져가는 선택도 있다.
-![img_9.png](img_9.png)
-![img_10.png](img_10.png)
+![img_9.png](img/img_9.png)
+![img_10.png](img/img_10.png)
 
 #### 트레이드 오프
 - DI, OCP를 지키기 위해 어댑터를 도입하고, 더 많은 코드를 유지한다.
@@ -819,7 +819,7 @@ public interface PlatformTransactionManager extends TransactionManager {
 ```
 트랜잭션은 트랜잭션 시작(획득), 커밋, 롤백으로 단순하게 추상화 할 수 있다.
 
-![img_11.png](img_11.png)
+![img_11.png](img/img_11.png)
 
 스프링은 트랜잭션을 추상화해서 제공할 뿐만 아니라, 실무에서 주로 사용하는 데이터 접근 기술에 대한 트랜잭션 매니저의 구현체도 제공한다. 
 우리는 필요한 구현체를 스프링 빈으로 등록하고 주입 받아서 사용하기만 하면 된다.
@@ -827,7 +827,7 @@ public interface PlatformTransactionManager extends TransactionManager {
 ### 선언적 트랜잭션과 AOP
 `@Transactional`을 통한 선언적 트랜잭션 관리 방식을 사용하게 되면 기본적으로 프록시 방식의 AOP가 적용된다.
 
-![img_12.png](img_12.png)
+![img_12.png](img/img_12.png)
 
 #### 스프링이 제공하는 트랜잭션 AOP
 스프링의 트랜잭션은 매우 중요한 기능이고, 전세계 누구나 다 사용하는 기능이다.
@@ -840,7 +840,7 @@ AOP를 적용하면 스프링은 대상 객체 대신에 프록시를 스프링 
 대상 객체를 직접 호출하는 문제는 일반적으로 발생하지 않지만 대상 객체 내부에서 메서드 호출이 발생하면 프록시를 거치지 않고 대상 객체를 직접 호출하는 문제가 발생한다.
 이렇게 되면 `@Transactional`이 있어도 트랜잭션이 적용되지 않는다.
 
-![img_13.png](img_13.png)
+![img_13.png](img/img_13.png)
 
 #### 문제 원인
 자바 언어에서 메서드 앞에 별도의 참조가 없으면 `this`라는 뜻으로 자기 자신의 인스턴스를 가리킨다.
@@ -922,6 +922,74 @@ public @interface Transactional {
 ### 예외와 트랜잭션 커밋, 롤백 - 기본
 예외가 발생했는데, 내부에서 예외를 처리하지 못하고, 트랜잭션 범위(@Transactional가 적용된 AOP) 밖으로 예외를 던지면 어떻게 될까?
 
-![img_14.png](img_14.png)
+![img_14.png](img/img_14.png)
 
+## 10. 스프링 트랜잭션 전파1 - 기본
 
+### 스프링 트랜잭션 전파 - 커밋, 롤백
+트랜잭션이 둘 이상 있을 때 어떻게 동작하는지 알아보고, 스프링이 제공하는 트랜잭션 전파(propagtaion)라는 개념도 알아보자.
+
+#### 트랜잭션 2개를 각각 동작했을 경우
+![img_15.png](img/img_15.png)
+
+### 스프링 트랜잭션 전파 - 전파 기본
+트랜잭션을 각각 사용하는 것이 아닌 이미 진행중인 트랜잭션에 추가로 수행하면 어떻게 될까?
+
+이런 경우 어떻게 동작할지 결정하는 것을 트랜잭션 전파(propagation)라 한다.
+
+#### 외부 트랜잭션이 수행중인데, 내부 트랜잭션이 추가로 수행됨
+![img_16.png](img/img_16.png)
+![img_17.png](img/img_17.png)
+
+- 스프링은 이해를 돕기 위해 논리 트랜잭션과 물리 트랜잭션이라는 개념을 나눈다.
+- 모든 논리 트랜잭션이 커밋되어야 물리 트랜잭셔이 커밋된다.
+- 하나의 논리 트랜잭션이라도 롤백되면 물리 트랜잭션은 롤백된다.
+- 내부 논리 트랜잭션이 롤백되면 롤백 전용 마크를 표시한다.
+- 외부 트랜잭션을 커밋할 때 롤백 전용 마크를 확인한다. 롤백 전용 마크가 표시되어 있으면 물리 트랜잭션을 롤백
+  하고, UnexpectedRollbackException 예외를 던진다.
+
+### 스프링 트랜잭션 전파 - REQUIRES_NEW
+외부 트랜잭션과 내부 트랜잭션을 완전히 분리해서 각각 별도의 물리 트랜잭션을 사용하는 방법이다.
+그래서 커밋과 롤백도 각각 별도로 이루어지게 된다.
+
+#### REQUIRES_NEW
+![img_18.png](img/img_18.png)
+
+### 스프링 트랜잭션 전파 - 다양한 전파 옵션
+
+#### REQUIRED
+가장 많이 사용하는 기본 설정이다. 기존 트랜잭션이 없으면 생성하고, 있으면 참여한다.
+* 기존 트랜잭션 없음: 새로운 트랜잭션을 생성한다.
+* 기존 트랜잭션 있음: 기존 트랜잭션에 참여한다.
+
+#### REQUIRES_NEW
+항상 새로운 트랜잭션을 생성한다.
+* 기존 트랜잭션 없음: 새로운 트랜잭션을 생성한다.
+* 기존 트랜잭션 있음: 새로운 트랜잭션을 생성한다.
+
+#### SUPPORT
+트랜잭션을 지원한다는 뜻이다.
+* 기존 트랜잭션 없음: 트랜잭션 없이 진행한다.
+* 기존 트랜잭션 있음: 기존 트랜잭션에 참여한다.
+
+#### NOT_SUPPORT
+트랜잭션을 지원하지 않는다는 의미이다.
+* 기존 트랜잭션 없음: 트랜잭션 없이 진행한다.
+* 기존 트랜잭션 있음: 트랜잭션 없이 진행한다. (기존 트랜잭션은 보류한다)
+
+#### MANDATORY
+의무사항이다. 트랜잭션이 반드시 있어야 한다. 기존 트랜잭션이 없으면 예외가 발생한다.
+* 기존 트랜잭션 없음: `IllegalTransactionStateException` 예외 발생
+* 기존 트랜잭션 있음: 기존 트랜잭션에 참여한다.
+
+#### NEVER
+트랜잭션을 사용하지 않는다는 의미이다. 기존 트랜잭션이 있으면 예외가 발생한다.
+* 기존 트랜잭션 없음: 트랜잭션 없이 진행한다.
+* 기존 트랜잭션 있음: `IllegalTransactionStateException` 예외 발생
+
+#### NESTED
+* 기존 트랜잭션 없음: 새로운 트랜잭션을 생성한다.
+* 기존 트랜잭션 있음: 중첩 트랜잭션을 만든다.
+  * 중첩 트랜잭션은 외부 트랜잭션의 영향을 받지만, 중첩 트랜잭션은 외부에 영향을 주지 않는다.
+  * 중첩 트랜잭션이 롤백 되어도 외부 트랜잭션은 커밋할 수 있다.
+  * 외부 트랜잭션이 롤백 되면 중첩 트랜잭션도 함께 롤백된다.
